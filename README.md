@@ -20,9 +20,8 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
    - [matriz_confusion_pokemon.png](matriz_confusion_pokemon.png): Matriz de confusión calculada sobre las 166 clases del conjunto de prueba independiente (68.2% de precisión global).
 
 4. **Liga al artículo de Medium:**
-   - [Artículo en Medium: Clasificación de 166 Pokémon mediante Transfer Learning](ENLACE_AL_ARTICULO_MEDIUM_AQUI)
-   - Nota: El texto completo en español con imágenes integradas se encuentra preparado en [articulo_medium.md](articulo_medium.md) y en [articulo_medium.html](articulo_medium.html).
-
+   - [Artículo en Medium: Clasificación de 166 Pokémon mediante Transfer Learning](https://medium.com/@lanfaro2727/clasificaci%C3%B3n-y-detecci%C3%B3n-de-pok%C3%A9mon-mediante-redes-neuronales-convolucionales-y-transferencia-de-29d89663d94e)
+  
 5. **Liga al proyecto en GitHub:**
    - https://github.com/Ricardo050427/Transfer-Learning
 

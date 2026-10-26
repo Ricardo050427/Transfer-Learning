@@ -16,8 +16,13 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
    - [script.slrm](script.slrm): Archivo de configuración para enviar el trabajo al clúster YUCA mediante SLURM con GPU.
 
 3. **Gráfica de accuracy y loss, y matriz de confusión:**
-   - [grafica_acc_loss_pokemon.png](grafica_acc_loss_pokemon.png): Curvas de precisión y pérdida durante las fases de extracción de características y ajuste fino.
-   - [matriz_confusion_pokemon.png](matriz_confusion_pokemon.png): Matriz de confusión calculada sobre las 166 clases del conjunto de prueba independiente (68.2% de precisión global).
+   - **Curvas de Precisión y Pérdida (Accuracy / Loss):**
+     
+     ![Curvas de Accuracy y Loss](imagenes/grafica_acc_loss_pokemon.png)
+
+   - **Matriz de Confusión:**
+     
+     ![Matriz de Confusión](imagenes/muestras_errores.png)
 
 4. **Liga al artículo de Medium:**
    - [Artículo en Medium: Clasificación de 166 Pokémon mediante Transfer Learning](https://medium.com/@lanfaro2727/clasificaci%C3%B3n-y-detecci%C3%B3n-de-pok%C3%A9mon-mediante-redes-neuronales-convolucionales-y-transferencia-de-29d89663d94e)

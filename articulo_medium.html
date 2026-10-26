@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Borrador Medium — Clasificador de Pokémon</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      line-height: 1.8;
+      color: #242424;
+      max-width: 740px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .banner {
+      background: #E8F5E9;
+      border: 2px solid #2E7D32;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+    }
+    .banner-text {
+      font-size: 14px;
+      color: #1B5E20;
+      font-weight: 600;
+    }
+    .copy-btn {
+      background: #1A8917;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .copy-btn:hover { background: #156d12; }
+    .copy-btn:active { transform: scale(0.98); }
+    h1 {
+      font-size: 38px;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      color: #111;
+    }
+    h2 {
+      font-size: 26px;
+      line-height: 1.35;
+      letter-spacing: -0.015em;
+      margin-top: 40px;
+      margin-bottom: 14px;
+      color: #222;
+    }
+    h3 {
+      font-size: 20px;
+      margin-top: 24px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    p {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #292929;
+    }
+    ul, ol {
+      font-size: 18px;
+      margin-bottom: 20px;
+      padding-left: 28px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    pre {
+      background: #F2F2F2;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 15px;
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      margin-bottom: 24px;
+      border-left: 4px solid #1A8917;
+    }
+    code {
+      background: #F2F2F2;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 15px;
+      font-family: Menlo, Monaco, Consolas, monospace;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+    hr {
+      border: 0;
+      height: 1px;
+      background: #E5E5E5;
+      margin: 40px 0;
+    }
+    a {
+      color: #1A8917;
+      text-decoration: underline;
+    }
+    .image-placeholder {
+      background: #F9F9F9;
+      border: 2px dashed #DDD;
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      color: #666;
+      font-size: 15px;
+      margin: 25px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="banner">
+    <div class="banner-text">Haz clic para copiar todo el artículo listo para Medium (con títulos, código y negritas):</div>
+    <button class="copy-btn" id="copyBtn" onclick="copiarArticulo()">Copiar para Medium</button>
+  </div>
+
+  <article id="articleContent">
+    <h1>Pokémon detection using convolutional neural networks and transfer learning</h1>
+
+    <h2>Introduction</h2>
+    <p>Identificar Pokémon ha sido un pasatiempo fascinante para millones de personas desde la llegada de la primera generación en 1996. Sin embargo, para quien recién empieza en este mundo, distinguir entre más de 150 criaturas distintas —muchas de ellas con formas, evoluciones y variantes muy similares— puede resultar una tarea abrumadora.</p>
+    <p>En este artículo exploraremos cómo construir un clasificador de Pokémon de principio a fin utilizando visión por computadora y aprendizaje profundo. Nuestro flujo de trabajo abarca cuatro etapas principales:</p>
+    <ol>
+      <li><strong>Análisis de datos:</strong> Exploración de un conjunto de datos grande y diverso.</li>
+      <li><strong>Preprocesamiento:</strong> Redimensionamiento y aumento de datos (<em>Data Augmentation</em>).</li>
+      <li><strong>Construcción del modelo:</strong> Transfer Learning utilizando <strong>MobileNetV2</strong>.</li>
+      <li><strong>Prueba en vivo:</strong> Despliegue en una aplicación web interactiva estilo Pokédex pixel art para probar el modelo en tiempo real con la cámara de un celular o pegando imágenes desde la web.</li>
+    </ol>
+
+    <hr>
+
+    <h2>The data (Los datos)</h2>
+    <p>Para este proyecto utilizamos el dataset disponible en Kaggle: <a href="https://www.kaggle.com/datasets/mornville/pokemonimagedataset" target="_blank">mornville/pokemonimagedataset</a>.</p>
+    <p>El dataset contiene más de 40,000 imágenes organizadas en <strong>166 clases</strong>, correspondientes a:</p>
+    <ul>
+      <li>Los <strong>151 Pokémon originales</strong> de la región de Kanto (desde Bulbasaur #001 hasta Mew #151).</li>
+      <li><strong>15 Megaevoluciones</strong> oficiales de esa misma generación (como Mega Charizard X/Y, Mega Gengar, Mega Mewtwo X/Y, etc.).</li>
+    </ul>
+    <p>Cada carpeta de especie contiene decenas de imágenes con variaciones estilísticas extremas: ilustraciones oficiales 2D, modelos 3D de videojuegos, cartas del juego TCG, arte conceptual y dibujos de la comunidad. Esta diversidad representa un reto interesante, ya que obliga a la red neuronal a aprender características invariantes de la especie y no simplemente memorizar un estilo gráfico particular.</p>
+
+    <hr>
+
+    <h2>Data preparation (Preparación de datos)</h2>
+    <p>Para procesar las imágenes de forma eficiente y evitar desbordar la memoria RAM del sistema, redimensionamos todas las imágenes a un tamaño estándar de 224 &times; 224 píxeles con 3 canales de color (RGB).</p>
+    <p>Utilizamos la utilidad de Keras <code>image_dataset_from_directory</code>, la cual carga y procesa lotes de imágenes directamente desde el disco:</p>
+
+<pre><code>IMG_SIZE = (224, 224)
+BATCH_SIZE = 32
+
+train_dataset, val_dataset = tf.keras.utils.image_dataset_from_directory(
+    train_dir,
+    validation_split=0.2,
+    subset="both",
+    seed=123,
+    image_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    shuffle=True
+)</code></pre>
+
+    <p>En este paso configuramos dos detalles clave:</p>
+    <ol>
+      <li><strong>División de datos:</strong> Separamos un 20% para el conjunto de validación y conservamos una partición independiente de prueba (<code>test_dataset</code>) para evaluar el modelo al final con imágenes que jamás vio durante el entrenamiento.</li>
+      <li><strong>Prefetching con <code>tf.data.AUTOTUNE</code>:</strong> Permite que la CPU prepare el siguiente lote de imágenes en segundo plano mientras la GPU calcula los gradientes del lote actual, eliminando cuellos de botella en la memoria.</li>
+    </ol>
+
+    <hr>
+
+    <h2>A small review of Neural Networks (Breve repaso de Redes Neuronales)</h2>
+    <p><em>En caso de que ya tengas experiencia con redes neuronales, puedes saltar directamente a la siguiente sección.</em></p>
+    <p>Una red neuronal es un modelo computacional inspirado en la estructura y funcionamiento de las redes neuronales biológicas de nuestro cerebro. Consiste en capas de nodos interconectados (neuronas artificiales) que procesan información mediante entradas, pesos y salidas.</p>
+    <p>Cada nodo recibe uno o más valores de entrada, los multiplica por pesos numéricos asociados, suma un sesgo (<em>bias</em>) y pasa el resultado a través de una función de activación matemática (como ReLU o Sigmoide). El aprendizaje consiste en ajustar iterativamente esos pesos mediante el algoritmo de retropropagación (<em>backpropagation</em>) para minimizar el error entre la predicción de la red y la etiqueta real.</p>
+
+    <hr>
+
+    <h2>Convolutional Neural Networks (Redes Neuronales Convolucionales)</h2>
+    <p>Las redes neuronales tradicionales completamente conectadas (<em>Dense</em>) no son óptimas para procesar imágenes, ya que pierden la información espacial 2D y requieren millones de parámetros innecesarios. Aquí es donde entran las <strong>Redes Neuronales Convolucionales (CNN)</strong>.</p>
+    <p>La característica fundamental de una CNN es su capacidad para extraer automáticamente patrones visuales mediante <strong>filtros o kernels</strong>. Estos filtros se deslizan sobre la matriz de píxeles de la imagen realizando operaciones de convolución:</p>
+    <ul>
+      <li>En las primeras capas, los filtros detectan bordes, líneas, contrastes y esquinas.</li>
+      <li>En capas intermedias, combinan bordes para reconocer formas simples (ojos, orejas, colas, textura de piel).</li>
+      <li>En capas profundas, forman representaciones abstractas de alto nivel que permiten identificar a la criatura completa.</li>
+    </ul>
+
+    <hr>
+
+    <h2>Transfer Learning (Transferencia de Aprendizaje)</h2>
+    <p>Entrenar una red convolucional profunda desde cero requiere semanas de cómputo en servidores de alto rendimiento y millones de imágenes. La <strong>Transferencia de Aprendizaje (Transfer Learning)</strong> resuelve este problema: tomamos una red ya entrenada por expertos en un conjunto gigantesco (como ImageNet, con más de 1.4 millones de imágenes de 1,000 categorías) y reutilizamos sus filtros visuales para nuestra tarea específica.</p>
+    <p>Para este proyecto seleccionamos <strong>MobileNetV2</strong>. Se trata de una arquitectura de 53 capas optimizada con bloques de cuello de botella residuales invertidos (<em>inverted residual bottlenecks</em>), lo que le permite mantener una alta precisión mientras consume una fracción de memoria y cómputo comparada con redes como ResNet o VGG.</p>
+
+    <hr>
+
+    <h2>The actual model (La construcción del modelo)</h2>
+    <p>El modelo se implementó en TensorFlow / Keras siguiendo una estrategia en dos fases:</p>
+
+    <h3>1. Data Augmentation y Preprocesamiento</h3>
+    <p>Para evitar el sobreajuste (<em>overfitting</em>), aplicamos capas de aumento de datos antes de ingresar a la base convolucional:</p>
+
+<pre><code>data_augmentation = tf.keras.Sequential([
+    layers.RandomFlip("horizontal"),
+    layers.RandomRotation(0.2),
+    layers.RandomZoom(0.1),
+])</code></pre>
+
+    <h3>2. Estructura de la Red</h3>
+    <p>Instanciamos MobileNetV2 sin su clasificador original (<code>include_top=False</code>) y añadimos nuestro propio cabezal de clasificación:</p>
+
+<pre><code>img_shape = (224, 224, 3)
+base_model = tf.keras.applications.MobileNetV2(
+    input_shape=img_shape,
+    include_top=False,
+    weights='imagenet'
+)
+base_model.trainable = False  # Congelamos la base en la Fase 1
+
+inputs = tf.keras.Input(shape=img_shape, name="input_image")
+x = data_augmentation(inputs)
+x = tf.keras.layers.Rescaling(1./127.5, offset=-1.0)(x)
+x = base_model(x, training=False)
+x = layers.GlobalAveragePooling2D(name="gap")(x)
+x = layers.Dropout(0.2, name="dropout")(x)
+outputs = layers.Dense(166, activation="softmax", name="predictions")(x)
+
+model = tf.keras.Model(inputs, outputs, name="Pokemon_MobileNetV2")</code></pre>
+
+    <h3>3. Fase 1: Extracción de Características (Feature Extraction)</h3>
+    <p>Compilamos con el optimizador Adam (<em>lr = 0.001</em>) y pérdida de entropía cruzada. En esta fase, los pesos de MobileNetV2 permanecen intactos y solo se entrenan las capas finales durante 10 épocas.</p>
+
+    <h3>4. Fase 2: Ajuste Fino (Fine-Tuning)</h3>
+    <p>Descongelamos las capas superiores de MobileNetV2 a partir de la capa 100 y reentrenamos con una tasa de aprendizaje 10 veces menor (<em>lr = 0.0001</em>). Esto permite afinar los filtros convolucionales más profundos para adaptarlos a los detalles distintivos de los Pokémon.</p>
+
+    <hr>
+
+    <h2>Results (Resultados)</h2>
+    <p>Tras completar las dos fases de entrenamiento:</p>
+    <ul>
+      <li><strong>Precisión en Test:</strong> <strong>68.2%</strong> sobre las 166 clases independientes de prueba.</li>
+      <li><strong>Curvas de Rendimiento:</strong> Las curvas de Accuracy y Loss mostraron una mejora drástica en el momento en que se activó el <em>Fine-Tuning</em>, reduciendo la pérdida de validación y estabilizando el aprendizaje.</li>
+      <li><strong>Matriz de Confusión:</strong> La diagonal principal de la matriz de 166x166 confirma una clasificación sólida. Los errores más frecuentes se concentran entre especies con similitudes morfológicas directas (por ejemplo, Pidgeotto confundido con Pidgeot o evoluciones que comparten paleta de colores).</li>
+    </ul>
+
+    <hr>
+
+    <h2>Live testing of the model (Prueba en vivo del modelo)</h2>
+    <p>¿De qué sirve un modelo de inteligencia artificial si solo vive dentro de una libreta de Jupyter? Para llevarlo al mundo real, convertimos los artefactos a formatos de inferencia ligera:</p>
+    <ul>
+      <li><strong>TensorFlow.js (model.json y fragmentos binarios .bin):</strong> Para ejecución web directa en JavaScript.</li>
+      <li><strong>TensorFlow Lite (model.tflite):</strong> Optimizado para dispositivos móviles y motores WebAssembly (XNNPACK).</li>
+    </ul>
+
+    <p>Diseñamos una <strong>aplicación web interactiva inspirada en la Pokédex clásica de Kanto en estilo pixel art (8-bit)</strong> con las siguientes capacidades:</p>
+    <ol>
+      <li><strong>Inferencia local en el navegador (Edge AI):</strong> Sin enviar imágenes a ningún servidor externo, el modelo realiza la clasificación en entre 30 y 90 milisegundos directamente en la GPU del usuario.</li>
+      <li><strong>Cámara en vivo:</strong> Con opción de alternar entre cámara frontal y trasera para apuntar a cartas, figuras o pantallas.</li>
+      <li><strong>Subida y Pegado con Ctrl + V:</strong> Puedes buscar cualquier Pokémon en Google Imágenes, hacer clic en "Copiar imagen" y presionar Ctrl + V en la Pokédex para obtener su diagnóstico instantáneo.</li>
+      <li><strong>Detalles Retro:</strong> Pantalla con efecto CRT de líneas de barrido (<em>scanlines</em>), audio sintetizado de 8-bit con la Web Audio API y descarga automática del sprite oficial y número de la Pokédex desde PokeAPI.</li>
+    </ol>
+
+    <p>Al realizar pruebas en vivo:</p>
+    <ul>
+      <li>Pokémon emblemáticos con rasgos muy marcados (como Pikachu, Gengar o Blastoise) obtienen certezas superiores al <strong>90%</strong>.</li>
+      <li>Criaturas con megaevoluciones identifican correctamente a la familia base con un desglose porcentual de la variante detectada.</li>
+    </ul>
+
+    <hr>
+
+    <h2>Conclusion (Conclusión)</h2>
+    <p>Este proyecto demostró la efectividad de la Transferencia de Aprendizaje combinada con Fine-Tuning para abordar problemas de visión artificial con datasets grandes y múltiples clases. Partiendo de MobileNetV2, logramos un modelo capaz de distinguir entre 166 especies de Pokémon y ejecutar inferencia en tiempo real en navegadores web y dispositivos móviles.</p>
+    <p>Como trabajo futuro, la arquitectura puede ampliarse fácilmente a las generaciones posteriores (Johto, Hoenn, etc.) y compilarse como una aplicación móvil nativa utilizando el archivo <code>model.tflite</code> ya generado.</p>
+
+    <h3>Enlaces del Proyecto:</h3>
+    <ul>
+      <li><strong>Repositorio de código en GitHub:</strong> <a href="https://github.com/Ricardo050427/Transfer-Learning" target="_blank">https://github.com/Ricardo050427/Transfer-Learning</a></li>
+      <li><strong>Despliegue Web:</strong> <a href="https://pokedex-ai-transfer-learning.netlify.app" target="_blank">https://pokedex-ai-transfer-learning.netlify.app</a></li>
+    </ul>
+  </article>
+
+  <script>
+    function copiarArticulo() {
+      const article = document.getElementById('articleContent');
+      
+      // Selección de rango HTML enriquecido
+      const range = document.createRange();
+      range.selectNodeContents(article);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      try {
+        const success = document.execCommand('copy');
+        if (success) {
+          const btn = document.getElementById('copyBtn');
+          btn.textContent = '¡Copiado con formato!';
+          btn.style.background = '#2E7D32';
+          setTimeout(() => {
+            btn.textContent = 'Copiar para Medium';
+            btn.style.background = '#1A8917';
+          }, 3000);
+          alert('¡Artículo copiado con éxito!\n\nAhora ve a tu pestaña de Medium y presiona Ctrl + V.\nVerás que todos los títulos, listas, negritas y bloques de código se formaterán solos automáticamente.');
+        } else {
+          throw new Error('execCommand falló');
+        }
+      } catch (err) {
+        alert('Por favor selecciona todo el texto con el mouse o Ctrl + A y copia con Ctrl + C.');
+      }
+      selection.removeAllRanges();
+    }
+  </script>
+</body>
+</html>

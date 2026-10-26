@@ -54,22 +54,17 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
 
 ## Cómo ejecutar el entrenamiento
 
-### En Google Colab
-1. Abre la libreta `Transfer_Learning_Pokemon.ipynb` en Google Colab.
-2. Activa una GPU en Entorno de ejecución > Cambiar tipo de entorno > T4 GPU.
-3. Ejecuta las celdas en orden. Al finalizar se generarán las gráficas y los archivos del modelo.
-
-### En el clúster YUCA
-1. Crea y activa el entorno Conda:
+### YUCA
+1. Crear y activar el entorno Conda:
    ```bash
    conda env create -f environment.yml
    source activate pokemon_env
    ```
-2. Envía el trabajo a la cola de SLURM:
+2. SLURM:
    ```bash
    sbatch script.slrm
    ```
-3. Revisa el estado del trabajo:
+3. Revisar el estado del trabajo:
    ```bash
    squeue -u $USER
    tail -f salida_pokemon_*.log
@@ -79,12 +74,5 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
 
 ## Aplicación Web (Pokédex)
 
-Para probar el modelo interactivamente en tu computadora:
-1. Abre una terminal dentro de la carpeta del proyecto.
-2. Inicia un servidor local:
-   ```bash
-   python -m http.server 8080 --directory pokedex_web
-   ```
-3. Abre http://localhost:8080 en tu navegador.
-
-Para usar la Pokédex desde tu teléfono celular con la cámara en vivo, puedes arrastrar la carpeta pokedex_web o el archivo pokedex_netlify.zip a https://app.netlify.com/drop para obtener un enlace público HTTPS en segundos.
+Para probar el modelo interactivamente en computadora o celular:
+https://euphonious-rabanadas-956233.netlify.app/

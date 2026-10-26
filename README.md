@@ -49,7 +49,6 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
 - `matriz_confusion_pokemon.png`: Gráfica oficial de matriz de confusión (166 clases).
 - `imagenes/`: Carpeta con todas las figuras generadas durante el entrenamiento y la portada.
 - `articulo_medium.md`: Artículo redactado completamente en español en formato Markdown.
-- `articulo_medium.html`: Versión visual interactiva con botón para copiar directo a Medium.
 - `pokedex_web/`: Aplicación web interactiva estilo Pokédex pixel art de 8 bits.
 - `pokedex_netlify.zip`: Archivo comprimido listo para desplegar en Netlify.
 - `modelo_web_pokemon/`: Archivos del modelo exportados para inferencia web y móvil.

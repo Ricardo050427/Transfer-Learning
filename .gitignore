@@ -1,0 +1,11 @@
+# Archivos innecesarios y temporales
+inecesario/
+__pycache__/
+*.pyc
+
+# Logs de SLURM
+salida_pokemon_*.log
+error_pokemon_*.log
+
+# Checkpoints de Jupyter
+.ipynb_checkpoints/

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pokédex AI — Clasificador de Pokémon</title>
+  
+  <!-- SEO & Social Meta Tags -->
+  <meta name="description" content="Pokédex interactiva con inteligencia artificial estilo pixel art para identificar Pokémon en tiempo real mediante visión computacional.">
+  <meta name="theme-color" content="#DC0A2D">
+
+  <!-- Google Pixel Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- TensorFlow.js CDN (versión 4.22.0) y Runner TFLite WASM -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js"></script>
+</head>
+<body>
+
+  <!-- Fondo retro con patrón pixel art -->
+  <div class="retro-bg"></div>
+
+  <main class="app-container">
+    
+    <!-- POKÉDEX SHELL -->
+    <div class="pokedex-device" id="pokedex">
+
+      <!-- ==============================================
+           PANEL IZQUIERDO: ESCÁNER / CÁMARA / CONTROLES
+           ============================================== -->
+      <section class="panel panel-left" aria-label="Panel de Escáner">
+        
+        <!-- Bisel Superior del Panel Izquierdo con Sensores -->
+        <header class="top-sensor-bar">
+          <!-- Gran Lente Azul con Reflejo y Pulso -->
+          <div class="sensor-gem-outer">
+            <div class="sensor-gem" id="sensorGem" title="Sensor Óptico">
+              <div class="sensor-specular"></div>
+            </div>
+          </div>
+
+          <!-- Luces LED de Estado: Rojo, Amarillo, Verde -->
+          <div class="led-indicators" aria-label="Indicadores de estado">
+            <span class="led led-red active" id="ledRed"></span>
+            <span class="led led-yellow" id="ledYellow"></span>
+            <span class="led led-green" id="ledGreen"></span>
+          </div>
+
+          <!-- Botón de Sonido 8-bit (Mute/Unmute) -->
+          <button class="sound-toggle-btn" id="soundToggle" title="Activar/Silenciar sonido 8-bit" aria-label="Silenciar">
+            <span class="sound-icon" id="soundIcon">🔊</span>
+          </button>
+        </header>
+
+        <!-- Pantalla Principal / Marco Retro Game Boy -->
+        <div class="main-screen-bezel">
+          <!-- Pequeños altavoces y LED superior del marco -->
+          <div class="bezel-top-dots">
+            <span class="bezel-dot"></span>
+            <span class="bezel-dot"></span>
+          </div>
+
+          <!-- Marco de la pantalla LCD -->
+          <div class="screen-viewport" id="screenViewport">
+            <!-- Rayo escáner animado vertical -->
+            <div class="laser-scanner" id="laserScanner"></div>
+
+            <!-- Capa Scanlines CRT -->
+            <div class="scanlines-overlay"></div>
+
+            <!-- Cámara en vivo -->
+            <video id="cameraFeed" playsinline autoplay muted class="display-media hidden"></video>
+
+            <!-- Imagen cargada / muestra -->
+            <img id="imagePreview" alt="Objetivo Pokémon" class="display-media hidden" crossOrigin="anonymous">
+
+            <!-- Estado Inicial / Standby en Pantalla -->
+            <div class="screen-idle-state" id="idleState">
+              <div class="pixel-pokeball-icon"></div>
+              <p class="pixel-status-text blink" id="screenStatus">LISTO PARA ESCANEAR</p>
+              <span class="pixel-sub-hint">CÁMARA • SUBIR • PEGA (CTRL+V)</span>
+            </div>
+
+            <!-- Indicador HUD en pantalla -->
+            <div class="screen-hud">
+              <span class="hud-tag" id="hudMode">MODO: ESPERA</span>
+              <span class="hud-fps" id="hudFps">AI: ON</span>
+            </div>
+          </div>
+
+          <!-- Bisel Inferior del Marco de Pantalla -->
+          <div class="bezel-bottom-bar">
+            <span class="screen-red-light" id="screenRedLight"></span>
+            <div class="bezel-speaker-vents">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles Inferiores del Panel Izquierdo -->
+        <footer class="left-controls">
+          <!-- Botón Redondo Negro / Acción Principal -->
+          <div class="dpad-container">
+            <div class="dpad" id="dpad">
+              <div class="dpad-btn dpad-up" id="dpadUp" title="Anterior">▲</div>
+              <div class="dpad-btn dpad-left" id="dpadLeft" title="Muestra anterior">◀</div>
+              <div class="dpad-center"></div>
+              <div class="dpad-btn dpad-right" id="dpadRight" title="Siguiente muestra">▶</div>
+              <div class="dpad-btn dpad-down" id="dpadDown" title="Siguiente">▼</div>
+            </div>
+          </div>
+
+          <!-- Botones de Acción Táctiles -->
+          <div class="pill-buttons-group">
+            <button class="pill-btn pill-blue" id="btnSwitchCamera" title="Cambiar cámara frontal/trasera">
+              CAM
+            </button>
+            <button class="pill-btn pill-red" id="btnClear" title="Limpiar y reiniciar">
+              CLR
+            </button>
+          </div>
+
+          <!-- Botón de Cámara, Subida y Pegado de Imagen -->
+          <div class="action-buttons-group">
+            <button class="pixel-btn btn-green" id="btnToggleCamera" title="Activar cámara en vivo">
+              <span class="btn-pixel-text">CÁMARA</span>
+            </button>
+            
+            <div class="action-sub-row">
+              <label class="pixel-btn btn-yellow" for="fileInput" title="Cargar imagen de archivo">
+                <span class="btn-pixel-text">SUBIR</span>
+                <input type="file" id="fileInput" accept="image/*" class="sr-only">
+              </label>
+              
+              <button class="pixel-btn btn-orange" id="btnPaste" title="Pegar imagen copiada de Google (Ctrl+V)">
+                <span class="btn-pixel-text">PEGAR</span>
+              </button>
+            </div>
+          </div>
+        </footer>
+
+      </section>
+
+      <!-- BISAGRA CENTRAL (ESTILO POKÉDEX FOLDABLE) -->
+      <div class="pokedex-hinge" aria-hidden="true">
+        <div class="hinge-groove"></div>
+        <div class="hinge-groove"></div>
+      </div>
+
+      <!-- ==============================================
+           PANEL DERECHO: PANTALLA DE DATOS Y ESTADÍSTICAS
+           ============================================== -->
+      <section class="panel panel-right" aria-label="Panel de Datos">
+        
+        <!-- Pantalla Secundaria de Datos (Estilo LCD Terminal Verde/Negro) -->
+        <div class="data-screen-container">
+          <div class="data-screen" id="dataScreen">
+            
+            <!-- Encabezado de la Detección -->
+            <div class="dex-header">
+              <span class="dex-id" id="dexId">N.° ---</span>
+              <span class="dex-species" id="dexName">POKÉMON DESCONOCIDO</span>
+            </div>
+
+            <!-- Sprite Oficial y Tipo -->
+            <div class="dex-visual-row">
+              <div class="sprite-frame">
+                <img id="pokeSprite" class="poke-sprite hidden" alt="Sprite oficial">
+                <div class="sprite-placeholder" id="spritePlaceholder">?</div>
+              </div>
+              <div class="dex-type-box">
+                <span class="label-mini">PRECISIÓN</span>
+                <span class="dex-confidence-value" id="confidenceValue">0.0%</span>
+                <div class="confidence-bar-outer">
+                  <div class="confidence-bar-inner" id="confidenceBar"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Predicciones con Barras Pixeladas -->
+            <div class="predictions-panel">
+              <p class="panel-subtitle">ANÁLISIS DE COINCIDENCIAS</p>
+              <ul class="prediction-list" id="predictionList">
+                <li class="pred-item empty"><span>1. ---</span><span>--%</span></li>
+                <li class="pred-item empty"><span>2. ---</span><span>--%</span></li>
+                <li class="pred-item empty"><span>3. ---</span><span>--%</span></li>
+              </ul>
+            </div>
+
+            <!-- Consola de Estado / Log 8-bit -->
+            <div class="dex-status-log" id="statusLog">
+              <span class="log-cursor">█</span> CARGANDO MODELO IA...
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Teclado Numérico y Botones de Color (Estilo Original Pokédex) -->
+        <div class="keypad-panel">
+          
+          <!-- Selector Azul Ancho -->
+          <div class="long-selector-bar">
+            <span class="blue-indicator-bar" id="statusIndicatorBar">SISTEMA ACTIVO</span>
+          </div>
+
+          <!-- Bandeja de Muestras Rápidas (6 Cartuchos de Pokémon) -->
+          <div class="sample-tray-section">
+            <span class="sample-tray-label">MUESTRAS RÁPIDAS:</span>
+            <div class="sample-buttons-grid">
+              <button class="sample-chip" data-sample="pikachu" title="Pikachu">⚡ PIKA</button>
+              <button class="sample-chip" data-sample="charizard" title="Charizard">🔥 CHAR</button>
+              <button class="sample-chip" data-sample="bulbasaur" title="Bulbasaur">🍃 BULB</button>
+              <button class="sample-chip" data-sample="blastoise" title="Blastoise">💧 BLAS</button>
+              <button class="sample-chip" data-sample="gengar" title="Gengar">👻 GENG</button>
+              <button class="sample-chip" data-sample="mewtwo" title="Mewtwo">🔮 MEW2</button>
+            </div>
+          </div>
+
+          <!-- Teclado de Botones Numéricos Clásicos -->
+          <div class="keypad-grid">
+            <button class="key-btn" data-key="1">1</button>
+            <button class="key-btn" data-key="2">2</button>
+            <button class="key-btn" data-key="3">3</button>
+            <button class="key-btn" data-key="4">4</button>
+            <button class="key-btn" data-key="5">5</button>
+            <button class="key-btn" data-key="6">6</button>
+            <button class="key-btn" data-key="7">7</button>
+            <button class="key-btn" data-key="8">8</button>
+            <button class="key-btn" data-key="9">9</button>
+            <button class="key-btn" data-key="0">0</button>
+          </div>
+
+          <!-- Botones Blancos y Amarillos Inferiores -->
+          <div class="bottom-action-pads">
+            <div class="dual-buttons">
+              <button class="flat-pad pad-white" id="btnHelp" title="Instrucciones">INFO</button>
+              <button class="flat-pad pad-yellow" id="btnSnap" title="Escanear Fotograma Actual">SCAN</button>
+            </div>
+            <div class="black-vent-strip">
+              <span></span><span></span>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- Modal Informativo / Modo Pixel Art -->
+    <div class="pixel-modal hidden" id="infoModal">
+      <div class="modal-card">
+        <header class="modal-header">
+          <span class="modal-title">POKÉDEX MANUAL</span>
+          <button class="modal-close-btn" id="modalClose">✕</button>
+        </header>
+        <div class="modal-body">
+          <p><strong>1. CÁMARA EN VIVO:</strong> Pulsa CÁMARA para activar el lente óptico y apuntar a cualquier carta, pantalla o figura.</p>
+          <p><strong>2. SUBIR FOTO:</strong> Pulsa SUBIR para seleccionar cualquier imagen desde tu galería o explorador.</p>
+          <p><strong>3. MUESTRAS:</strong> Pulsa cualquier chip de Pokémon para probar el modelo al instante con un solo toque.</p>
+          <p class="modal-footer-note">166 CLASES • MOBILENETV2 • TENSORFLOW.JS</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+name: pokemon_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - pillow
+  - pip:
+      - tensorflow>=2.15.0
+      - kagglehub>=0.2.0

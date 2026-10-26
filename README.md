@@ -13,7 +13,7 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
    - [Transfer_Learning_Pokemon.ipynb](Transfer_Learning_Pokemon.ipynb): Libreta interactiva paso a paso para Google Colab.
 
 2. **Archivo SLRM:**
-   - [script.slrm](script.slrm): Archivo de configuración para enviar el trabajo al clúster YUCA mediante SLURM con GPU.
+   - [script.slrm](script.slrm): Archivo de configuración para YUCA.
 
 3. **Gráfica de accuracy y loss, y matriz de confusión:**
    - **Curvas de Precisión y Pérdida (Accuracy / Loss):**

@@ -16,18 +16,18 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
    - [script.slrm](script.slrm): Archivo de configuración para enviar el trabajo al clúster YUCA mediante SLURM con GPU.
 
 3. **Gráfica de accuracy y loss, y matriz de confusión:**
-   - `grafica_acc_loss_pokemon.png`: Curvas de aprendizaje durante la fase de extracción de características y fine-tuning.
-   - `matriz_confusion_pokemon.png`: Matriz de confusión sobre las 166 clases del conjunto de prueba.
+   - [grafica_acc_loss_pokemon.png](grafica_acc_loss_pokemon.png): Curvas de precisión y pérdida durante las fases de extracción de características y ajuste fino.
+   - [matriz_confusion_pokemon.png](matriz_confusion_pokemon.png): Matriz de confusión calculada sobre las 166 clases del conjunto de prueba independiente (68.2% de precisión global).
 
 4. **Liga al artículo de Medium:**
    - [Artículo en Medium: Clasificación de 166 Pokémon mediante Transfer Learning](ENLACE_AL_ARTICULO_MEDIUM_AQUI)
-   - Nota: El texto completo preparado para copiar y pegar en Medium se encuentra redactado en el archivo [articulo_medium.md](articulo_medium.md).
+   - Nota: El texto completo en español con imágenes integradas se encuentra preparado en [articulo_medium.md](articulo_medium.md) y en [articulo_medium.html](articulo_medium.html).
 
 5. **Liga al proyecto en GitHub:**
    - https://github.com/Ricardo050427/Transfer-Learning
 
 6. **Video utilizando la aplicación en celular:**
-   - [Video demostrativo de clasificación en móvil](ENLACE_AL_VIDEO_AQUI)
+   - [Video demostrativo en celular (pokedex.mp4)](pokedex.mp4): Grabación en video probando la Pokédex web en tiempo real desde el dispositivo móvil.
 
 7. **Archivo de ambiente Conda configurado:**
    - [environment.yml](environment.yml): Especificación de dependencias del entorno `pokemon_env` reproducible.
@@ -36,14 +36,19 @@ A continuación se presentan todas las evidencias requeridas para la entrega del
 
 ## Estructura del repositorio
 
-- `Transfer_Learning_Pokemon.ipynb`: Libreta de Jupyter para Google Colab.
-- `pokemon_transfer_learning.py`: Script de entrenamiento en Python.
-- `script.slrm`: Script de lanzamiento para clúster YUCA.
-- `environment.yml`: Archivo de configuración del entorno Conda.
-- `articulo_medium.md`: Borrador completo listo para publicar en Medium.
-- `pokedex_web/`: Aplicación web interactiva estilo Pokédex.
+- `Transfer_Learning_Pokemon.ipynb`: Libreta interactiva paso a paso para Google Colab.
+- `pokemon_transfer_learning.py`: Script de entrenamiento en Python para ejecución autónoma.
+- `script.slrm`: Archivo de configuración para el gestor de trabajos SLURM en el clúster YUCA.
+- `environment.yml`: Archivo de configuración del entorno reproducible Conda.
+- `pokedex.mp4`: Video de demostración utilizando la aplicación web desde el teléfono celular.
+- `grafica_acc_loss_pokemon.png`: Gráfica oficial de curvas de precisión y pérdida (accuracy y loss).
+- `matriz_confusion_pokemon.png`: Gráfica oficial de matriz de confusión (166 clases).
+- `imagenes/`: Carpeta con todas las figuras generadas durante el entrenamiento y la portada.
+- `articulo_medium.md`: Artículo redactado completamente en español en formato Markdown.
+- `articulo_medium.html`: Versión visual interactiva con botón para copiar directo a Medium.
+- `pokedex_web/`: Aplicación web interactiva estilo Pokédex pixel art de 8 bits.
 - `pokedex_netlify.zip`: Archivo comprimido listo para desplegar en Netlify.
-- `modelo_web_pokemon/`: Archivos del modelo exportado para inferencia web y móvil.
+- `modelo_web_pokemon/`: Archivos del modelo exportados para inferencia web y móvil.
 
 ---
 

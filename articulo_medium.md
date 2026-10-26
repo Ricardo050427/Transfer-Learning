@@ -1,167 +1,201 @@
-# Pokémon detection using convolutional neural networks and transfer learning
+# Clasificación y detección de Pokémon mediante redes neuronales convolucionales y transferencia de aprendizaje
 
-## Introduction
+![Los 151 Pokémon originales de la primera generación de Kanto](imagenes/portada_pokemon.jpg)
+*Figura 1: Los 151 Pokémon originales de la primera generación de Kanto.*
+
+---
+
+## Introducción
 
 Identificar Pokémon ha sido un pasatiempo fascinante para millones de personas desde la llegada de la primera generación en 1996. Sin embargo, para quien recién empieza en este mundo, distinguir entre más de 150 criaturas distintas —muchas de ellas con formas, evoluciones y variantes muy similares— puede resultar una tarea abrumadora.
 
 En este artículo exploraremos cómo construir un clasificador de Pokémon de principio a fin utilizando visión por computadora y aprendizaje profundo. Nuestro flujo de trabajo abarca cuatro etapas principales:
 
-1. **Análisis de datos:** Exploración de un conjunto de datos grande y diverso.
-2. **Preprocesamiento:** Redimensionamiento y aumento de datos (*Data Augmentation*).
-3. **Construcción del modelo:** Transfer Learning utilizando **MobileNetV2**.
-4. **Prueba en vivo:** Despliegue en una aplicación web interactiva estilo Pokédex pixel art para probar el modelo en tiempo real con la cámara de un celular o pegando imágenes desde la web.
+1. **Análisis de datos:** Exploración de un conjunto de datos grande y diverso con múltiples estilos visuales.
+2. **Preprocesamiento:** Redimensionamiento, normalización y aumento de datos sintético.
+3. **Construcción del modelo:** Transferencia de aprendizaje utilizando la arquitectura **MobileNetV2** en dos fases (extracción de características y ajuste fino).
+4. **Prueba en vivo:** Despliegue en una aplicación web interactiva estilo Pokédex clásica en pixel art de 8 bits para probar el modelo en tiempo real desde la cámara del celular o pegando imágenes.
 
 ---
 
-## The data (Los datos)
+## El conjunto de datos
 
-Para este proyecto utilizamos el dataset disponible en Kaggle: [`mornville/pokemonimagedataset`](https://www.kaggle.com/datasets/mornville/pokemonimagedataset).
+Para este proyecto utilizamos el conjunto de datos disponible públicamente en Kaggle: [`mornville/pokemonimagedataset`](https://www.kaggle.com/datasets/mornville/pokemonimagedataset).
 
 El dataset contiene más de 40,000 imágenes organizadas en **166 clases**, correspondientes a:
 - Los **151 Pokémon originales** de la región de Kanto (desde Bulbasaur #001 hasta Mew #151).
-- **15 Megaevoluciones** oficiales de esa misma generación (como Mega Charizard X/Y, Mega Gengar, Mega Mewtwo X/Y, etc.).
+- **15 Megaevoluciones** oficiales de esa misma generación (como Mega Charizard X e Y, Mega Gengar, Mega Mewtwo X e Y, entre otras).
 
-Cada carpeta de especie contiene decenas de imágenes con variaciones estilísticas extremas: ilustraciones oficiales 2D, modelos 3D de videojuegos, cartas del juego TCG, arte conceptual y dibujos de la comunidad. Esta diversidad representa un reto interesante, ya que obliga a la red neuronal a aprender características invariantes de la especie y no simplemente memorizar un estilo gráfico particular.
+![Distribución de imágenes en el conjunto de entrenamiento](imagenes/distribucion_clases.png)
+*Figura 2: Distribución de imágenes en el conjunto de entrenamiento (muestra representativa de 25 clases de las 166 totales).*
+
+Cada carpeta de especie contiene decenas de imágenes con variaciones estilísticas extremas: ilustraciones oficiales en dos dimensiones, modelos tridimensionales de videojuegos modernos, cartas coleccionables del juego TCG, figuras de juguete, arte conceptual y dibujos realizados por la comunidad.
+
+![Diversidad de estilos visuales en el conjunto de datos](imagenes/muestras_dataset.png)
+*Figura 3: Diversidad estilística dentro del dataset: cartas coleccionables, modelos 3D, sprites retro e ilustraciones.*
+
+Esta diversidad representa un reto muy interesante, ya que obliga a la red neuronal a aprender patrones morfológicos invariantes de la especie y no simplemente memorizar un estilo gráfico particular.
 
 ---
 
-## Data preparation (Preparación de datos)
+## Preparación y procesamiento de las imágenes
 
-Para procesar las imágenes de forma eficiente y evitar desbordar la memoria RAM del sistema, redimensionamos todas las imágenes a un tamaño estándar de $224 \times 224$ píxeles con 3 canales de color (RGB).
+Para procesar las imágenes de forma eficiente y evitar desbordar la memoria de la tarjeta gráfica o la memoria principal, redimensionamos todas las imágenes a un tamaño estándar de $224 \times 224$ píxeles con 3 canales de color (rojo, verde y azul).
 
-Utilizamos la utilidad de Keras `image_dataset_from_directory`, la cual carga y procesa lotes de imágenes directamente desde el disco:
+Utilizamos la herramienta de Keras `image_dataset_from_directory`, la cual carga y procesa lotes de imágenes directamente desde el disco:
 
 ```python
-IMG_SIZE = (224, 224)
-BATCH_SIZE = 32
+TAMANO_IMAGEN = (224, 224)
+TAMANO_LOTE = 32
 
-train_dataset, val_dataset = tf.keras.utils.image_dataset_from_directory(
-    train_dir,
+dataset_entrenamiento, dataset_validacion = tf.keras.utils.image_dataset_from_directory(
+    directorio_entrenamiento,
     validation_split=0.2,
     subset="both",
     seed=123,
-    image_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
+    image_size=TAMANO_IMAGEN,
+    batch_size=TAMANO_LOTE,
     shuffle=True
 )
 ```
 
 En este paso configuramos dos detalles clave:
-1. **División de datos:** Separamos un 20% para el conjunto de validación y conservamos una partición independiente de prueba (`test_dataset`) para evaluar el modelo al final con imágenes que jamás vio durante el entrenamiento.
-2. **Prefetching con `tf.data.AUTOTUNE`:** Permite que la CPU prepare el siguiente lote de imágenes en segundo plano mientras la GPU calcula los gradientes del lote actual, eliminando cuellos de botella en la memoria.
+1. **División de datos:** Separamos un 20% para el conjunto de validación y conservamos una partición independiente de prueba (`dataset_prueba`) para evaluar el modelo al final con imágenes que jamás observó durante las sesiones de entrenamiento.
+2. **Precarga asíncrona en memoria:** Mediante la optimización `tf.data.AUTOTUNE`, la CPU prepara el siguiente lote de imágenes en segundo plano mientras la GPU calcula los gradientes del lote actual, eliminando tiempos muertos de cómputo.
 
 ---
 
-## A small review of Neural Networks (Breve repaso de Redes Neuronales)
+## Breve repaso de las redes neuronales artificiales
 
-*En caso de que ya tengas experiencia con redes neuronales, puedes saltar directamente a la siguiente sección.*
+*En caso de que ya cuentes con experiencia previa en aprendizaje profundo, puedes avanzar directamente a la siguiente sección.*
 
-Una red neuronal es un modelo computacional inspirado en la estructura y funcionamiento de las redes neuronales biológicas de nuestro cerebro. Consiste en capas de nodos interconectados (neuronas artificiales) que procesan información mediante entradas, pesos y salidas.
+Una red neuronal artificial es un modelo matemático y computacional inspirado en el comportamiento de las redes neuronales biológicas. Está compuesta por capas de nodos interconectados (neuronas artificiales) que transforman las señales de entrada mediante combinaciones lineales y funciones matemáticas no lineales.
 
-Cada nodo recibe uno o más valores de entrada, los multiplica por pesos numéricos asociados, suma un sesgo (*bias*) y pasa el resultado a través de una función de activación matemática (como ReLU o Sigmoide). El aprendizaje consiste en ajustar iterativamente esos pesos mediante el algoritmo de retropropagación (*backpropagation*) para minimizar el error entre la predicción de la red y la etiqueta real.
-
----
-
-## Convolutional Neural Networks (Redes Neuronales Convolucionales)
-
-Las redes neuronales tradicionales completamente conectadas (*Dense*) no son óptimas para procesar imágenes, ya que pierden la información espacial 2D y requieren millones de parámetros innecesarios. Aquí es donde entran las **Redes Neuronales Convolucionales (CNN)**.
-
-La característica fundamental de una CNN es su capacidad para extraer automáticamente patrones visuales mediante **filtros o kernels**. Estos filtros se deslizan sobre la matriz de píxeles de la imagen realizando operaciones de convolución:
-- En las primeras capas, los filtros detectan bordes, líneas, contrastes y esquinas.
-- En capas intermedias, combinan bordes para reconocer formas simples (ojos, orejas, colas, textura de piel).
-- En capas profundas, forman representaciones abstractas de alto nivel que permiten identificar a la criatura completa.
+Cada neurona recibe una serie de valores, los multiplica por sus respectivos pesos numéricos, añade un sesgo constante y aplica una función de activación (como ReLU). Durante el proceso de entrenamiento, el algoritmo de retropropagación calcula la derivada del error respecto a cada peso y los ajusta progresivamente a través del descenso de gradiente para minimizar la diferencia entre la predicción y la etiqueta real.
 
 ---
 
-## Transfer Learning (Transferencia de Aprendizaje)
+## Redes neuronales convolucionales (CNN)
 
-Entrenar una red convolucional profunda desde cero requiere semanas de cómputo en servidores de alto rendimiento y millones de imágenes. La **Transferencia de Aprendizaje (Transfer Learning)** resuelve este problema: tomamos una red ya entrenada por expertos en un conjunto gigantesco (como ImageNet, con más de 1.4 millones de imágenes de 1,000 categorías) y reutilizamos sus filtros visuales para nuestra tarea específica.
+Las redes neuronales tradicionales densas o completamente conectadas no son adecuadas para procesar imágenes complejas, ya que destruyen la estructura espacial bidimensional y requieren millones de parámetros que provocan sobreajuste inmediato.
 
-Para este proyecto seleccionamos **MobileNetV2**. Se trata de una arquitectura de 53 capas optimizada con bloques de cuello de botella residuales invertidos (*inverted residual bottlenecks*), lo que le permite mantener una alta precisión mientras consume una fracción de memoria y cómputo comparada con redes como ResNet o VGG.
+Las **Redes Neuronales Convolucionales (CNN)** solucionan esta limitación mediante el uso de **filtros o núcleos convolucionales**. Estos filtros se desplazan a lo largo de la imagen realizando operaciones de producto punto local:
+- En las **primeras capas**, los filtros identifican patrones simples: líneas rectas, bordes orientados, texturas y cambios bruscos de color.
+- En las **capas intermedias**, combinan esos bordes para reconocer componentes geométricos reconocibles: orejas puntiagudas, ojos redondos, alas, colas y patrones de pelaje o escamas.
+- En las **capas profundas**, integran los componentes en representaciones semánticas de alto nivel que describen a la criatura completa independientemente de su ángulo o iluminación.
 
 ---
 
-## The actual model (La construcción del modelo)
+## Transferencia de aprendizaje
 
-El modelo se implementó en TensorFlow / Keras siguiendo una estrategia en dos fases:
+Entrenar una arquitectura convolucional profunda desde cero demanda cientos de miles de imágenes anotadas y días enteros de cómputo en clústeres especializados. La **Transferencia de Aprendizaje** resuelve este dilema: tomamos una red neuronal que ya fue previamente entrenada por expertos en un conjunto masivo (como ImageNet, con más de 1.4 millones de fotografías organizadas en 1,000 clases generales) y reutilizamos su banco de filtros convolucionales para resolver nuestra tarea especializada.
 
-### 1. Data Augmentation y Preprocesamiento
-Para evitar el sobreajuste (*overfitting*), aplicamos capas de aumento de datos antes de ingresar a la base convolucional:
+Para este clasificador seleccionamos la arquitectura **MobileNetV2**. Este modelo cuenta con 53 capas convolucionales diseñadas con bloques residuales invertidos y capas de convolución separables en profundidad. Su diseño le permite mantener un nivel de precisión muy competitivo consumiendo una fracción del uso de memoria y cálculo matemático en comparación con redes mucho más pesadas como ResNet o VGG, haciéndolo ideal para inferencia ágil en navegadores web y dispositivos móviles.
+
+---
+
+## Construcción y arquitectura del modelo
+
+Implementamos el clasificador en TensorFlow y Keras siguiendo una metodología progresiva en dos fases:
+
+### 1. Aumento sintético de datos y normalización
+Para prevenir el sobreajuste y fomentar la invariancia a transformaciones espaciales, aplicamos transformaciones aleatorias a las imágenes antes de pasar a la base convolucional:
 
 ```python
-data_augmentation = tf.keras.Sequential([
+aumento_datos = tf.keras.Sequential([
     layers.RandomFlip("horizontal"),
     layers.RandomRotation(0.2),
     layers.RandomZoom(0.1),
 ])
 ```
 
-### 2. Estructura de la Red
-Instanciamos MobileNetV2 sin su clasificador original (`include_top=False`) y añadimos nuestro propio cabezal de clasificación:
+### 2. Estructura de la red neuronal
+Cargamos la base MobileNetV2 sin su clasificador original (`include_top=False`) y construimos un cabezal de clasificación a la medida para las 166 clases:
 
 ```python
-img_shape = (224, 224, 3)
-base_model = tf.keras.applications.MobileNetV2(
-    input_shape=img_shape,
+forma_imagen = (224, 224, 3)
+
+modelo_base = tf.keras.applications.MobileNetV2(
+    input_shape=forma_imagen,
     include_top=False,
     weights='imagenet'
 )
-base_model.trainable = False  # Congelamos la base en la Fase 1
+modelo_base.trainable = False  # Congelamos la base en la Fase 1
 
-inputs = tf.keras.Input(shape=img_shape, name="input_image")
-x = data_augmentation(inputs)
+entradas = tf.keras.Input(shape=forma_imagen, name="imagen_entrada")
+x = aumento_datos(entradas)
 x = tf.keras.layers.Rescaling(1./127.5, offset=-1.0)(x)
-x = base_model(x, training=False)
-x = layers.GlobalAveragePooling2D(name="gap")(x)
-x = layers.Dropout(0.2, name="dropout")(x)
-outputs = layers.Dense(166, activation="softmax", name="predictions")(x)
+x = modelo_base(x, training=False)
+x = layers.GlobalAveragePooling2D(name="promedio_global")(x)
+x = layers.Dropout(0.2, name="regularizacion_dropout")(x)
+salidas = layers.Dense(166, activation="softmax", name="probabilidades_clase")(x)
 
-model = tf.keras.Model(inputs, outputs, name="Pokemon_MobileNetV2")
+modelo = tf.keras.Model(entradas, salidas, name="Clasificador_Pokemon_MobileNetV2")
 ```
 
-### 3. Fase 1: Extracción de Características (Feature Extraction)
-Compilamos con el optimizador Adam ($lr = 0.001$) y pérdida de entropía cruzada. En esta fase, los pesos de MobileNetV2 permanecen intactos y solo se entrenan las capas finales durante 10 épocas.
+### 3. Fase 1: Extracción de características
+Compilamos con el optimizador Adam (tasa de aprendizaje de $0.001$) y entropía cruzada categórica. En esta etapa, todos los pesos de la base MobileNetV2 se mantienen congelados y únicamente se entrenan las capas del cabezal final durante 10 épocas.
 
-### 4. Fase 2: Ajuste Fino (Fine-Tuning)
-Descongelamos las capas superiores de MobileNetV2 a partir de la capa 100 y reentrenamos con una tasa de aprendizaje 10 veces menor ($lr = 0.0001$). Esto permite afinar los filtros convolucionales más profundos para adaptarlos a los detalles distintivos de los Pokémon.
+![Curvas de la Fase 1 de extracción de características](imagenes/curvas_feature_extraction.png)
+*Figura 4: Curvas de precisión y pérdida durante la Fase 1 (extracción de características con la base convolucional congelada).*
 
----
-
-## Results (Resultados)
-
-Tras completar las dos fases de entrenamiento:
-
-- **Precisión en Test:** **68.2%** sobre las 166 clases independientes de prueba.
-- **Curvas de Rendimiento:** Las curvas de Accuracy y Loss mostraron una mejora drástica en el momento en que se activó el *Fine-Tuning*, reduciendo la pérdida de validación y estabilizando el aprendizaje.
-- **Matriz de Confusión:** La diagonal principal de la matriz de 166x166 confirma una clasificación sólida. Los errores más frecuentes se concentran entre especies con similitudes morfológicas directas (por ejemplo, Pidgeotto confundido con Pidgeot o evoluciones que comparten paleta de colores).
+### 4. Fase 2: Ajuste fino (Fine-Tuning)
+Posteriormente, descongelamos las capas superiores de MobileNetV2 a partir de la capa 100 y reanudamos el entrenamiento con una tasa de aprendizaje diez veces menor ($0.0001$). Esto permite que los filtros visuales profundos se amolden suavemente a las particularidades morfológicas del universo Pokémon sin destruir el conocimiento genérico previo.
 
 ---
 
-## Live testing of the model (Prueba en vivo del modelo)
+## Resultados y métricas de rendimiento
 
-¿De qué sirve un modelo de inteligencia artificial si solo vive dentro de una libreta de Jupyter? Para llevarlo al mundo real, convertimos los artefactos a formatos de inferencia ligera:
-- **TensorFlow.js (`model.json` y fragmentos binarios `.bin`):** Para ejecución web directa en JavaScript.
-- **TensorFlow Lite (`model.tflite`):** Optimizado para dispositivos móviles y motores WebAssembly (XNNPACK).
+Una vez completadas las dos fases de entrenamiento, evaluamos el desempeño cuantitativo y cualitativo sobre el conjunto de prueba independiente:
 
-Diseñamos una **aplicación web interactiva inspirada en la Pokédex clásica de Kanto en estilo pixel art (8-bit)** con las siguientes capacidades:
+- **Precisión global en prueba:** **68.2%** sobre las 166 clases (151 especies de Kanto más 15 megaevoluciones), un rendimiento notable considerando la altísima dispersión de estilos (cartas, figuras 3D, dibujos y sprites).
+- **Evolución del entrenamiento:** Como se aprecia en la gráfica general, el inicio del ajuste fino en la época 10 produjo un incremento sustancial en la precisión y una reducción inmediata de la función de pérdida.
 
-1. **Inferencia local en el navegador (Edge AI):** Sin enviar imágenes a ningún servidor externo, el modelo realiza la clasificación en entre 30 y 90 milisegundos directamente en la GPU del usuario.
-2. **Cámara en vivo:** Con opción de alternar entre cámara frontal y trasera para apuntar a cartas, figuras o pantallas.
-3. **Subida y Pegado con `Ctrl + V`:** Puedes buscar cualquier Pokémon en Google Imágenes, hacer clic en "Copiar imagen" y presionar `Ctrl + V` en la Pokédex para obtener su diagnóstico instantáneo.
-4. **Detalles Retro:** Pantalla con efecto CRT de líneas de barrido (*scanlines*), audio sintetizado de 8-bit con la Web Audio API y descarga automática del sprite oficial y número de la Pokédex desde PokeAPI.
+![Curvas de entrenamiento completo de precisión y pérdida](imagenes/grafica_acc_loss_pokemon.png)
+*Figura 5: Curvas completas de precisión (Accuracy) y pérdida (Loss) a lo largo de las 20 épocas, señalando el inicio del ajuste fino.*
+
+### Matriz de confusión
+La matriz de confusión evaluada sobre las 166 clases ratifica que la gran mayoría de las predicciones se concentran a lo largo de la diagonal principal.
+
+![Matriz de confusión sobre las 166 clases del conjunto de prueba](imagenes/matriz_confusion_pokemon.png)
+*Figura 6: Matriz de confusión sobre el conjunto de prueba (166 clases, precisión global del 68.2%).*
+
+### Análisis cualitativo de errores
+Al examinar las imágenes clasificadas incorrectamente, observamos que las confusiones ocurren casi exclusivamente entre especies biológicamente o visualmente emparentadas: por ejemplo, confusiones entre etapas evolutivas contiguas (Pidgeotto frente a Pidgeot) o entre una criatura base y su megaevolución cuando la silueta conserva los mismos rasgos predominantes.
+
+![Muestras mal clasificadas en el conjunto de prueba](imagenes/muestras_errores.png)
+*Figura 7: Análisis de muestras mal clasificadas en el conjunto de prueba.*
+
+---
+
+## Pruebas en vivo y despliegue en la Pokédex Web
+
+Llevar el modelo más allá de la libreta de experimentación y ponerlo en manos de los usuarios fue una prioridad fundamental del proyecto. Para ello, convertimos los artefactos a formatos de inferencia liviana:
+- **TensorFlow.js (`model.json` y fragmentos binarios `.bin`):** Para ejecución directa en el navegador web mediante JavaScript.
+- **TensorFlow Lite (`model.tflite`):** Para su integración en aplicaciones móviles y motores de aceleración por hardware.
+
+Construimos una **aplicación web interactiva inspirada en la Pokédex original de la región de Kanto con estética retro pixel art de 8 bits**, la cual incorpora:
+
+1. **Inferencia local en el navegador (computación en el borde):** Sin necesidad de enviar las imágenes a servidores externos, el modelo realiza la clasificación en un tiempo de entre 30 y 90 milisegundos directamente en la tarjeta de video del dispositivo del usuario.
+2. **Cámara en tiempo real:** Selector para alternar instantáneamente entre la cámara frontal y la cámara trasera del teléfono celular, permitiendo escanear cartas coleccionables, peluches o figuras en cualquier momento.
+3. **Pegado directo con el teclado (`Ctrl + V`) y carga de archivos:** Es posible buscar cualquier ilustración en internet, copiar la imagen al portapapeles y pegarla directamente sobre la Pokédex para obtener su análisis inmediato.
+4. **Retroalimentación sensorial:** Pantalla con simulación de monitor CRT clásico con líneas de barrido, efectos de sonido sintetizados en 8 bits utilizando la API de audio del navegador y consulta automática del sprite animado y número de catálogo oficial desde la base de datos de PokeAPI.
 
 Al realizar pruebas en vivo:
-- Pokémon emblemáticos con rasgos muy marcados (como Pikachu, Gengar o Blastoise) obtienen certezas superiores al **90%**.
-- Criaturas con megaevoluciones identifican correctamente a la familia base con un desglose porcentual de la variante detectada.
+- Criaturas icónicas con patrones de color distintivos (como Pikachu, Gengar o Blastoise) alcanzan certezas que superan con frecuencia el **90%**.
+- En especies con megaevolución, el modelo identifica con precisión la familia base y entrega la probabilidad asignada a la forma alternativa.
 
 ---
 
-## Conclusion (Conclusión)
+## Conclusiones
 
-Este proyecto demostró la efectividad de la Transferencia de Aprendizaje combinada con Fine-Tuning para abordar problemas de visión artificial con datasets grandes y múltiples clases. Partiendo de MobileNetV2, logramos un modelo capaz de distinguir entre 166 especies de Pokémon y ejecutar inferencia en tiempo real en navegadores web y dispositivos móviles.
+Este proyecto comprueba la enorme utilidad de la transferencia de aprendizaje asistida por ajuste fino para resolver problemas complejos de visión artificial con un número elevado de clases y una marcada heterogeneidad visual.
 
-Como trabajo futuro, la arquitectura puede ampliarse fácilmente a las generaciones posteriores (Johto, Hoenn, etc.) y compilarse como una aplicación móvil nativa utilizando el archivo `model.tflite` ya generado.
+Partiendo de la arquitectura MobileNetV2 preentrenada, logramos construir un clasificador robusto para 166 clases con un 68.2% de precisión global en prueba, logrando además empaquetarlo y desplegarlo en una interfaz web retro que ejecuta inferencia inmediata tanto en computadoras de escritorio como en teléfonos móviles.
 
-### Enlaces del Proyecto:
+Como líneas de trabajo a futuro, el sistema puede expandirse para incorporar las generaciones subsiguientes del universo Pokémon y empaquetarse de manera nativa en sistemas Android e iOS utilizando el archivo optimizado de TensorFlow Lite.
+
+### Enlaces del proyecto:
 - **Repositorio de código en GitHub:** [https://github.com/Ricardo050427/Transfer-Learning](https://github.com/Ricardo050427/Transfer-Learning)
-- **Despliegue Web:** [https://pokedex-ai-transfer-learning.netlify.app](https://app.netlify.com/drop)
+- **Demostración de la aplicación web:** [https://pokedex-ai-transfer-learning.netlify.app](https://app.netlify.com/drop)
+- **Video demostrativo en celular:** [pokedex.mp4](pokedex.mp4)
